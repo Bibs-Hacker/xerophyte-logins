@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Xenocrypt — Login</title>
+  <style>
+    /* ====== Basic Reset ====== */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    html,body { height: 100%; background: #E8E6FF; display:flex; align-items:center; justify-content:center; }
+
+    /* ====== Card layout ====== */
+    .card {
+      width: 920px;
+      max-width: 95vw;
+      height: 520px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(23,18,70,0.12);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    /* Left purple welcome panel */
+    .left {
+      background: linear-gradient(180deg,#5a0d61,#700f72);
+      color: white;
+      padding: 48px 40px;
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .left .content { width:100%; }
+    .left h1 { font-size: 35px; margin-bottom:14px; letter-spacing: -0.6px; }
+    .left p { opacity:0.9; margin-bottom:18px; }
+    .btn-outline {
+      border: 2px solid rgba(255,255,255,0.8);
+      padding: 12px 22px;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      font-weight:600;
+      transition: transform .12s ease, box-shadow .12s;
+    }
+    .btn-outline:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); }
+
+    /* Right login panel */
+    .right { padding: 48px 40px; display:flex; flex-direction:column; justify-content:center; }
+    .right h2 { font-size: 28px; margin-bottom: 18px; color:#222; }
+    .form-group { margin-bottom:14px; }
+    input[type="text"], input[type="email"], input[type="password"] {
+      width:100%;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      background: #f7f7f8;
+      outline: none;
+      font-size:18px;
+    }
+    .small { font-size:15px; color:#666; margin:10px 0; }
+    .btn-primary {
+      width:100%;
+      padding: 14px 18px;
+      border-radius: 10px;
+      border:none;
+      font-weight:700;
+      background: linear-gradient(90deg,#7b0f73,#531056);
+      color:white;
+      cursor:pointer;
+      margin-top:6px;
+    }
+    .socials { display:flex; gap:10px; margin-top:14px; }
+    .socials button {
+      width:44px; height:44px; border-radius:8px;
+      border:2px solid #ddd; background:white; cursor:pointer; font-weight:700;
+    }
+
+    /* tiny feedback */
+    .feedback { margin-top:12px; color:#2a7a2a; font-weight:600; display:none; }
+    .error { color:#a12a2a; display:none; }
+
+    /* Responsive */
+    @media (max-width:840px){
+      .card { grid-template-columns: 1fr; height:auto; }
+      .left { padding:28px; min-height:220px; border-bottom-left-radius:0; border-bottom-right-radius:18px; }
+      .right { padding:28px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="left">
+      <div class="content">
+        <h1>Hello, Welcome!</h1>
+        <p>Don't have an account?</p>
+        <button id="show-register" class="btn-outline">Register</button>
+      </div>
+    </div>
+
+    <div class="right">
+      <h2 id="form-title">Login</h2>
+
+      <div id="auth-forms">
+        <!-- Login form -->
+        <div id="login-form">
+          <div class="form-group">
+            <input id="login-email" type="email" placeholder="Email" />
+          </div>
+          <div class="form-group">
+            <input id="login-password" type="password" placeholder="Password" />
+          </div>
+          <div class="small"><a href="#" id="forgot-link">Forgot password?</a></div>
+          <button class="btn-primary" id="btn-login">Login</button>
+        </div>
+
+        <!-- Register form (hidden by default) -->
+        <div id="register-form" style="display:none;">
+          <div class="form-group">
+            <input id="reg-name" type="text" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <input id="reg-email" type="email" placeholder="Email" />
+          </div>
+          <div class="form-group">
+            <input id="reg-password" type="password" placeholder="Password (6+ chars)" />
+          </div>
+          <button class="btn-primary" id="btn-register">Register</button>
+        </div>
+      </div>
+
+      <div class="feedback" id="feedback">Success message</div>
+      <div class="error" id="err">Error message</div>
+
+      <div style="margin-top:20px;">
+        <div class="small">or login with social platforms</div>
+        <div class="socials">
+          <button title="Google">G</button>
+          <button title="Facebook">f</button>
+          <button title="Github">in</button>
+          <button title="LinkedIn">in</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
+  <script>
+    // ======== Put your Firebase config here ========
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuUWQ5XZ97bebC8OgSg9P49HKQpbRRpuA",
+      authDomain: "tech-brian-logins.firebaseapp.com",
+      projectId: "tech-brian-logins",
+      storageBucket: "tech-brian-logins.firebasestorage.app",
+      messagingSenderId: "114035597707",
+      appId: "1:114035597707:web:b1d59f184597bf4fdb8f8e"
+    };
+    // ==============================================
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const functions = firebase.functions();
+
+    // UI refs
+    const showRegisterBtn = document.getElementById('show-register');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const formTitle = document.getElementById('form-title');
+    const btnRegister = document.getElementById('btn-register');
+    const btnLogin = document.getElementById('btn-login');
+    const feedback = document.getElementById('feedback');
+    const err = document.getElementById('err');
+
+    function showFeedback(message){
+      err.style.display = 'none';
+      feedback.style.display = 'block';
+      feedback.textContent = message;
+      setTimeout(()=> feedback.style.display = 'none', 6000);
+    }
+    function showError(message){
+      feedback.style.display = 'none';
+      err.style.display = 'block';
+      err.textContent = message;
+      setTimeout(()=> err.style.display = 'none', 7000);
+    }
+
+    // toggle forms
+    showRegisterBtn.addEventListener('click', () => {
+      if (registerForm.style.display === 'none'){
+        registerForm.style.display = 'block';
+        loginForm.style.display = 'none';
+        formTitle.textContent = 'Create account';
+        showRegisterBtn.textContent = 'Back to login';
+      } else {
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+        formTitle.textContent = 'Login';
+        showRegisterBtn.textContent = 'Register';
+      }
+    });
+
+    // Register
+    btnRegister.addEventListener('click', async () => {
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const pw = document.getElementById('reg-password').value;
+
+      if (!name || !email || pw.length < 6) return showError('Provide name, valid email and password (6+ chars).');
+
+      try {
+        const userCred = await auth.createUserWithEmailAndPassword(email, pw);
+        const user = userCred.user;
+        await user.updateProfile({ displayName: name });
+
+        // store user record in Firestore (do not store raw password)
+        await db.collection('users').doc(user.uid).set({
+          name,
+          email,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showFeedback('Registration successful. Logging you in...');
+        // Optionally send email verification (uses default Firebase sender)
+        // await user.sendEmailVerification();
+
+      } catch (e) {
+        showError(e.message || 'Registration failed.');
+      }
+    });
+
+    // Login
+    btnLogin.addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value.trim();
+      const pw = document.getElementById('login-password').value;
+      if (!email || pw.length < 6) return showError('Enter email and password.');
+
+      try {
+        const cred = await auth.signInWithEmailAndPassword(email, pw);
+        const user = cred.user;
+        showFeedback('Login successful — sending welcome email...');
+
+        // Call Cloud Function to send confirmation email
+        // The functions callable name below must match deployed Cloud Function (sendSignInEmail)
+        const sendSignInEmail = functions.httpsCallable('sendSignInEmail');
+        const res = await sendSignInEmail({ uid: user.uid, email: user.email, name: user.displayName || "" });
+
+        if (res && res.data && res.data.success) {
+          showFeedback('Login & email confirmation sent. Welcome!');
+        } else {
+          showError('Logged in, but email sending failed (check cloud function).');
+        }
+
+      } catch (e) {
+        showError(e.message || 'Login failed.');
+      }
+    });
+
+    // Optionally handle "forgot password" click
+    document.getElementById('forgot-link').addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const email = prompt('Enter your registered email for password reset:');
+      if (!email) return;
+      try {
+        await auth.sendPasswordResetEmail(email);
+        alert('Password reset email sent (Firebase default sender).');
+      } catch (e) {
+        alert('Failed: ' + e.message);
+      }
+    });
+
+  </script>
+</body>
+</html>
