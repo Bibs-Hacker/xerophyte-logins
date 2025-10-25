@@ -1,6 +1,6 @@
 ## Xerophyte- Logins By 🖥Tech Brian
 <p align="center">
-  <img src="https://files.catbox.moe/6q53me.jpg" alt="Xerophyte Logo" width="120" height="120"/>
+  <img src="https://files.catbox.moe/83km7k.jpg" alt="Xerophyte Logo" width="250" height="200"/>
 </p>
 
 <h1 align="center">💜🔥 Xerophyte (Tech Brian's Team) 🔥💜</h1>
